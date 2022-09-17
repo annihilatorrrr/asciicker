@@ -326,7 +326,7 @@ def save_mesh(filepath, mesh, obj, use_normals=True, use_uv_coords=True, use_col
         e[0] = pf_vidx
 
         vidx = e[1]
-        
+
         v = mesh_verts[vidx]
         if smooth:
             normal = v.normal[:]
@@ -428,7 +428,7 @@ def save_mesh(filepath, mesh, obj, use_normals=True, use_uv_coords=True, use_col
         # ---------------------------
 
         for e in edges:
-            fw(f"{2}")
+            fw(2)
             fw(f" {e[0]} {e[1]} ")
             fw("\n")            
 
@@ -455,20 +455,12 @@ def save(
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')
 
-    if use_selection:
-        obs = context.selected_objects
-    else:
-        obs = context.scene.objects
-
+    obs = context.selected_objects if use_selection else context.scene.objects
     depsgraph = context.evaluated_depsgraph_get()
     bm = bmesh.new()
 
     for ob in obs:
-        if use_mesh_modifiers:
-            ob_eval = ob.evaluated_get(depsgraph)
-        else:
-            ob_eval = ob
-
+        ob_eval = ob.evaluated_get(depsgraph) if use_mesh_modifiers else ob
         try:
             me = ob_eval.to_mesh()
         except RuntimeError:

@@ -37,10 +37,7 @@ class ElementSpec:
         return [x.load(format, stream) for x in self.properties]
 
     def index(self, name):
-        for i, p in enumerate(self.properties):
-            if p.name == name:
-                return i
-        return -1
+        return next((i for i, p in enumerate(self.properties) if p.name == name), -1)
 
 
 class PropertySpec:
@@ -70,18 +67,15 @@ class PropertySpec:
                     ans.append(s[1:-1])
                 stream[:count] = []
                 return ans
-            if num_type == 'f' or num_type == 'd':
-                mapper = float
-            else:
-                mapper = int
+            mapper = float if num_type in ['f', 'd'] else int
             ans = [mapper(x) for x in stream[:count]]
             stream[:count] = []
             return ans
         else:
             if num_type == 's':
                 ans = []
-                for i in range(count):
-                    fmt = format + 'i'
+                for _ in range(count):
+                    fmt = f'{format}i'
                     data = stream.read(struct.calcsize(fmt))
                     length = struct.unpack(fmt, data)[0]
                     fmt = '%s%is' % (format, length)
@@ -95,11 +89,10 @@ class PropertySpec:
                 return struct.unpack(fmt, data)
 
     def load(self, format, stream):
-        if self.list_type is not None:
-            count = int(self.read_format(format, 1, self.list_type, stream)[0])
-            return self.read_format(format, count, self.numeric_type, stream)
-        else:
+        if self.list_type is None:
             return self.read_format(format, 1, self.numeric_type, stream)[0]
+        count = int(self.read_format(format, 1, self.list_type, stream)[0])
+        return self.read_format(format, count, self.numeric_type, stream)
 
 
 class ObjectSpec:
@@ -110,19 +103,12 @@ class ObjectSpec:
         self.specs = []
 
     def load(self, format, stream):
-        return dict([(i.name, [i.load(format, stream) for j in range(i.count)]) for i in self.specs])
-
-        # Longhand for above LC
-        """
-        answer = {}
-        for i in self.specs:
-            answer[i.name] = []
-            for j in range(i.count):
-                if not j % 100 and meshtools.show_progress:
-                    Blender.Window.DrawProgressBar(float(j) / i.count, 'Loading ' + i.name)
-                answer[i.name].append(i.load(format, stream))
-        return answer
-        """
+        return dict(
+            [
+                (i.name, [i.load(format, stream) for _ in range(i.count)])
+                for i in self.specs
+            ]
+        )
 
 
 def read(filepath):
